@@ -1,16 +1,44 @@
 from typing import Annotated
 
+
+def _missing_backend_factory(backend: str, import_error: Exception):
+    """Return a callable that raises a clear backend-missing error when used."""
+
+    def _missing_backend(*args, **kwargs):
+        raise RuntimeError(
+            f"{backend} backend unavailable: {import_error}. "
+            f"Install the missing dependency to use this vendor path."
+        ) from import_error
+
+    return _missing_backend
+
+
 # Import from vendor-specific modules
-from .y_finance import (
-    get_YFin_data_online,
-    get_stock_stats_indicators_window,
-    get_fundamentals as get_yfinance_fundamentals,
-    get_balance_sheet as get_yfinance_balance_sheet,
-    get_cashflow as get_yfinance_cashflow,
-    get_income_statement as get_yfinance_income_statement,
-    get_insider_transactions as get_yfinance_insider_transactions,
-)
-from .yfinance_news import get_news_yfinance, get_global_news_yfinance
+try:
+    from .y_finance import (
+        get_YFin_data_online,
+        get_stock_stats_indicators_window,
+        get_fundamentals as get_yfinance_fundamentals,
+        get_balance_sheet as get_yfinance_balance_sheet,
+        get_cashflow as get_yfinance_cashflow,
+        get_income_statement as get_yfinance_income_statement,
+        get_insider_transactions as get_yfinance_insider_transactions,
+    )
+except ImportError as _yfinance_import_error:
+    get_YFin_data_online = _missing_backend_factory("yfinance", _yfinance_import_error)
+    get_stock_stats_indicators_window = _missing_backend_factory("yfinance", _yfinance_import_error)
+    get_yfinance_fundamentals = _missing_backend_factory("yfinance", _yfinance_import_error)
+    get_yfinance_balance_sheet = _missing_backend_factory("yfinance", _yfinance_import_error)
+    get_yfinance_cashflow = _missing_backend_factory("yfinance", _yfinance_import_error)
+    get_yfinance_income_statement = _missing_backend_factory("yfinance", _yfinance_import_error)
+    get_yfinance_insider_transactions = _missing_backend_factory("yfinance", _yfinance_import_error)
+
+try:
+    from .yfinance_news import get_news_yfinance, get_global_news_yfinance
+except ImportError as _yfinance_news_import_error:
+    get_news_yfinance = _missing_backend_factory("yfinance news", _yfinance_news_import_error)
+    get_global_news_yfinance = _missing_backend_factory("yfinance news", _yfinance_news_import_error)
+
 from .alpha_vantage import (
     get_stock as get_alpha_vantage_stock,
     get_indicator as get_alpha_vantage_indicator,
