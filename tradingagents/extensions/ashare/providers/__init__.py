@@ -50,6 +50,10 @@ def _register_providers() -> None:
     # AKShare
     akshare_instance = _akshare_mod.get_provider()
     register_provider("akshare", "get_stock_data", akshare_instance.get_stock_data)
+    register_provider("akshare", "get_fundamentals", akshare_instance.get_fundamentals)
+    register_provider("akshare", "get_balance_sheet", akshare_instance.get_balance_sheet)
+    register_provider("akshare", "get_cashflow", akshare_instance.get_cashflow)
+    register_provider("akshare", "get_income_statement", akshare_instance.get_income_statement)
 
     # BaoStock
     baostock_instance = _baostock_mod.get_provider()
