@@ -97,6 +97,24 @@ Our framework decomposes complex trading tasks into specialized roles. This ensu
   <img src="assets/risk.png" width="70%" style="display: inline-block; margin: 0 2%;">
 </p>
 
+## Local Fork Note: A-share Extension Status
+
+This local fork has been extended with a narrow A-share capability layer while keeping the upstream architecture largely intact.
+
+Current local status:
+- A-share market detection and ticker normalization
+- Real A-share `get_stock_data` path (AKShare with fallback handling)
+- A-share `get_indicators` bridged onto the upstream stockstats path
+- A-share fundamentals bridge for `get_fundamentals`, `get_balance_sheet`, `get_cashflow`, and `get_income_statement`
+- A-share `get_news` bridge via AKShare `stock_news_em`
+
+Design constraint for this fork:
+- keep diffs narrow
+- prefer upstream-compatible seams over large rewrites
+- avoid pulling in proprietary `TradingAgents-CN` web/app layers
+
+See `archive/reference/projects/tradingagents-ashare-acceptance-2026-04-06.md` in the workspace for the local acceptance record.
+
 ## Installation and CLI
 
 ### Installation
