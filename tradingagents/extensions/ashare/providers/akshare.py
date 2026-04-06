@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 import pandas as pd
 
 from .base import BaseProvider
+from ..news.akshare_news import format_stock_news
 
 
 class AKShareProvider(BaseProvider):
@@ -293,6 +294,25 @@ class AKShareProvider(BaseProvider):
             return self._format_statement(ticker, "Income Statement", df, freq, curr_date)
         except Exception as exc:
             self._error(ticker, f"AKShare income statement failed: {exc}")
+
+    def get_news(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str,
+        **kwargs,
+    ) -> str:
+        if not self._available:
+            self._error(ticker, "AKShare not available: install with 'pip install akshare'.")
+
+        import akshare as ak
+
+        code, _exchange = self._parse_ticker(ticker)
+        try:
+            df = ak.stock_news_em(symbol=code)
+            return format_stock_news(df, ticker, start_date, end_date)
+        except Exception as exc:
+            self._error(ticker, f"AKShare stock news failed: {exc}")
 
 
 _provider_instance: Optional[AKShareProvider] = None
