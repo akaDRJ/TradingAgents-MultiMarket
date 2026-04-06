@@ -176,12 +176,16 @@ def get_vendor(category: str, method: str = None) -> str:
 def route_to_vendor(method: str, *args, **kwargs):
     """Route method calls to appropriate vendor implementation with fallback support.
 
-    For A-share tickers, routes through the market-aware extension layer.
-    For US/HK tickers, uses the existing vendor chain.
+    For A-share tickers, core price-data methods route through the extension
+    provider layer, while technical indicators intentionally reuse the existing
+    upstream stockstats/yfinance calculation path fed by A-share OHLCV data.
+    For US/HK tickers, the existing vendor chain remains unchanged.
     """
-    # Check if this looks like an A-share ticker (6-digit codes, .SS/.SZ suffix)
     ticker = _get_ticker_from_args(args, kwargs)
     if ticker and _is_ashare_ticker(ticker):
+        if method == "get_indicators":
+            return get_stock_stats_indicators_window(*args, **kwargs)
+
         ext = _get_ashare_ext()
         if ext is not None:
             result = ext.route_extension(method, *args, **kwargs)

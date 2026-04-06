@@ -44,47 +44,85 @@ def _clean_dataframe(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
+def _looks_like_ashare_symbol(symbol: str) -> bool:
+    if not symbol:
+        return False
+    t = str(symbol).strip().upper()
+    if t.endswith((".SS", ".SZ", ".BJ")):
+        return True
+    return len(t) == 6 and t.isdigit()
+
+
+def _load_ashare_ohlcv(symbol: str, start_str: str, end_str: str) -> pd.DataFrame:
+    from tradingagents.extensions.ashare import routing as ashare_routing
+
+    result = ashare_routing.route_extension("get_stock_data", symbol, start_str, end_str)
+    if not isinstance(result, dict):
+        raise RuntimeError(f"A-share OHLCV route failed for {symbol}: {result}")
+
+    records = result.get("data") or []
+    if not records:
+        return pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume"])
+
+    df = pd.DataFrame(records)
+    rename_map = {
+        "date": "Date",
+        "trade_date": "Date",
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "close": "Close",
+        "volume": "Volume",
+        "vol": "Volume",
+    }
+    df = df.rename(columns=rename_map)
+    for col in ["Date", "Open", "High", "Low", "Close", "Volume"]:
+        if col not in df.columns:
+            df[col] = None
+    return df[["Date", "Open", "High", "Low", "Close", "Volume"]]
+
+
 def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     """Fetch OHLCV data with caching, filtered to prevent look-ahead bias.
 
-    Downloads 15 years of data up to today and caches per symbol. On
-    subsequent calls the cache is reused. Rows after curr_date are
-    filtered out so backtests never see future prices.
+    Downloads 5 years of data up to today and caches per symbol for the default
+    yfinance path. For A-share symbols, reuses the market extension's price-data
+    route and converts the returned records into the same dataframe shape that
+    upstream stockstats logic expects.
     """
     config = get_config()
     curr_date_dt = pd.to_datetime(curr_date)
 
-    # Cache uses a fixed window (15y to today) so one file per symbol
     today_date = pd.Timestamp.today()
     start_date = today_date - pd.DateOffset(years=5)
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = today_date.strftime("%Y-%m-%d")
 
-    os.makedirs(config["data_cache_dir"], exist_ok=True)
-    data_file = os.path.join(
-        config["data_cache_dir"],
-        f"{symbol}-YFin-data-{start_str}-{end_str}.csv",
-    )
-
-    if os.path.exists(data_file):
-        data = pd.read_csv(data_file, on_bad_lines="skip")
+    if _looks_like_ashare_symbol(symbol):
+        data = _load_ashare_ohlcv(symbol, start_str, end_str)
     else:
-        data = yf_retry(lambda: yf.download(
-            symbol,
-            start=start_str,
-            end=end_str,
-            multi_level_index=False,
-            progress=False,
-            auto_adjust=True,
-        ))
-        data = data.reset_index()
-        data.to_csv(data_file, index=False)
+        os.makedirs(config["data_cache_dir"], exist_ok=True)
+        data_file = os.path.join(
+            config["data_cache_dir"],
+            f"{symbol}-YFin-data-{start_str}-{end_str}.csv",
+        )
+
+        if os.path.exists(data_file):
+            data = pd.read_csv(data_file, on_bad_lines="skip")
+        else:
+            data = yf_retry(lambda: yf.download(
+                symbol,
+                start=start_str,
+                end=end_str,
+                multi_level_index=False,
+                progress=False,
+                auto_adjust=True,
+            ))
+            data = data.reset_index()
+            data.to_csv(data_file, index=False)
 
     data = _clean_dataframe(data)
-
-    # Filter to curr_date to prevent look-ahead bias in backtesting
     data = data[data["Date"] <= curr_date_dt]
-
     return data
 
 
