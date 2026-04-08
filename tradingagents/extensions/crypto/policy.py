@@ -1,6 +1,6 @@
 from tradingagents.extensions.market_ext.types import Market
 
-DEFERRED_UPSTREAM_METHODS = {"get_news", "get_global_news"}
+DEFERRED_UPSTREAM_METHODS = set()
 
 
 MARKET_POLICY = {
@@ -11,8 +11,8 @@ MARKET_POLICY = {
         "get_balance_sheet": None,
         "get_cashflow": None,
         "get_income_statement": None,
-        "get_news": None,
-        "get_global_news": None,
+        "get_news": ["public_news"],
+        "get_global_news": ["public_news"],
         "get_insider_transactions": None,
     }
 }
