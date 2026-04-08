@@ -4,6 +4,7 @@ import unittest
 
 from tradingagents.extensions.market_ext import (
     Market,
+    detect_market_for_ticker,
     register_extension,
     reset_extensions_for_test,
     resolve_extension,
@@ -14,6 +15,7 @@ from tradingagents.extensions.market_ext import (
 class SharedMarketExtensionDispatchTests(unittest.TestCase):
     def setUp(self):
         reset_extensions_for_test()
+        self.addCleanup(reset_extensions_for_test)
 
     def test_resolve_extension_returns_registered_match(self):
         register_extension(
@@ -60,6 +62,18 @@ class SharedMarketExtensionDispatchTests(unittest.TestCase):
         result = route_market_extension("get_stock_data", "AAPL", "2024-01-01", "2024-01-31")
 
         self.assertIsNone(result)
+
+    def test_detect_market_for_ticker_uses_normalized_ticker(self):
+        register_extension(
+            name="crypto",
+            match_ticker=lambda ticker: ticker.upper().startswith("BTC"),
+            detect_market=lambda ticker: Market.CRYPTO if ticker == "BTCUSDT" else Market.UNKNOWN,
+            route_extension=lambda method, *args, **kwargs: None,
+        )
+
+        result = detect_market_for_ticker(" BTCUSDT ")
+
+        self.assertEqual(result, Market.CRYPTO)
 
 
 if __name__ == "__main__":

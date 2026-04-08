@@ -6,11 +6,14 @@ from .registry import list_extensions
 from .types import ExtensionRegistration, Market
 
 
-def resolve_extension(ticker: str) -> Optional[ExtensionRegistration]:
+def _normalize_ticker(ticker: str | None) -> str:
     if not ticker:
-        return None
+        return ""
+    return str(ticker).strip()
 
-    raw = str(ticker).strip()
+
+def resolve_extension(ticker: str) -> Optional[ExtensionRegistration]:
+    raw = _normalize_ticker(ticker)
     if not raw:
         return None
 
@@ -21,10 +24,11 @@ def resolve_extension(ticker: str) -> Optional[ExtensionRegistration]:
 
 
 def detect_market_for_ticker(ticker: str) -> Market:
-    extension = resolve_extension(ticker)
+    raw = _normalize_ticker(ticker)
+    extension = resolve_extension(raw)
     if extension is None:
         return Market.UNKNOWN
-    return extension.detect_market(ticker)
+    return extension.detect_market(raw)
 
 
 def route_market_extension(method: str, *args, **kwargs) -> Any | None:
