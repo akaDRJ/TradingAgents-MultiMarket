@@ -71,20 +71,23 @@ class CryptoNewsRoutingTests(unittest.TestCase):
         self.assertIn("not supported", out)
         self.assertIn("crypto", out)
 
-    def test_route_to_vendor_skips_extension_for_unimplemented_crypto_news(self):
+    def test_route_to_vendor_routes_crypto_news_through_extension_seam(self):
         extension = resolve_extension("BTCUSDT")
         self.assertIsNotNone(extension)
         self.assertEqual(extension.name, "crypto")
         self.assertIsNotNone(get_extension("crypto"))
 
         with (
-            patch("tradingagents.dataflows.interface.route_market_extension", side_effect=AssertionError("crypto news should skip extension routing")),
-            patch.dict(interface.VENDOR_METHODS["get_news"], {"alpha_vantage": lambda *args, **kwargs: "UPSTREAM_NEWS"}, clear=True),
-            patch("tradingagents.dataflows.interface.get_vendor", return_value="alpha_vantage"),
+            patch("tradingagents.dataflows.interface.route_market_extension", return_value="EXTENSION_NEWS") as mock_route,
+            patch(
+                "tradingagents.dataflows.interface.get_vendor",
+                side_effect=AssertionError("crypto news should not fall back to stock vendors"),
+            ),
         ):
             out = route_to_vendor("get_news", "BTCUSDT", "2024-01-01", "2024-01-10")
 
-        self.assertEqual(out, "UPSTREAM_NEWS")
+        mock_route.assert_called_once_with("get_news", "BTCUSDT", "2024-01-01", "2024-01-10")
+        self.assertEqual(out, "EXTENSION_NEWS")
 
 
 if __name__ == "__main__":
