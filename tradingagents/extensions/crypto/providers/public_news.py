@@ -61,8 +61,25 @@ class PublicNewsProvider:
             lines.append("")
         return "\n".join(lines)
 
-    def get_global_news(self, curr_date: str, look_back_days: int = 7, limit: int = 5, **kwargs):
-        root = self._fetch_feed("bitcoin OR ethereum OR crypto market")
+    def get_global_news(
+        self,
+        ticker_or_curr_date: str,
+        curr_date: str | None = None,
+        look_back_days: int = 7,
+        limit: int = 5,
+        **kwargs,
+    ):
+        if curr_date is None:
+            ticker = kwargs.get("ticker")
+            curr_date = ticker_or_curr_date
+        else:
+            ticker = ticker_or_curr_date
+
+        query = "bitcoin OR ethereum OR crypto market"
+        if ticker:
+            query = f"{ticker} OR {query}"
+
+        root = self._fetch_feed(query)
         start_date = (datetime.fromisoformat(curr_date) - timedelta(days=look_back_days)).date().isoformat()
         items = self._filter_items_by_date(root, start_date, curr_date, limit=limit)
         lines = [f"## Global Crypto News up to {curr_date}:", ""]
