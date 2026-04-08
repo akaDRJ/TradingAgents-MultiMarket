@@ -1,4 +1,4 @@
-from tradingagents.extensions.market_ext import register_extension
+from tradingagents.extensions.market_ext.registry import get_extension, register_extension
 
 from .market import detect_market, get_exchange_for_a_share
 from .normalize import normalize_ticker
@@ -20,9 +20,16 @@ def _matches_ashare_extension(ticker: str) -> bool:
     return detect_market(ticker) in {Market.A_SHARE, Market.HK}
 
 
-register_extension(
-    name="ashare",
-    match_ticker=_matches_ashare_extension,
-    detect_market=detect_market,
-    route_extension=route_extension,
-)
+def ensure_registered() -> None:
+    if get_extension("ashare") is not None:
+        return
+
+    register_extension(
+        name="ashare",
+        match_ticker=_matches_ashare_extension,
+        detect_market=detect_market,
+        route_extension=route_extension,
+    )
+
+
+ensure_registered()

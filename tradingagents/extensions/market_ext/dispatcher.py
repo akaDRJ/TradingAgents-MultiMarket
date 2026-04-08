@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from typing import Any, Optional
 
 from .registry import list_extensions
@@ -12,7 +13,21 @@ def _normalize_ticker(ticker: str | None) -> str:
     return str(ticker).strip()
 
 
+def _ensure_builtin_extensions_loaded() -> None:
+    """Load built-in market extensions before resolving matches.
+
+    This keeps extension resolution reliable even if no caller imported
+    extension packages explicitly beforehand.
+    """
+    ashare_module = importlib.import_module("tradingagents.extensions.ashare")
+    ensure_registered = getattr(ashare_module, "ensure_registered", None)
+    if callable(ensure_registered):
+        ensure_registered()
+
+
 def resolve_extension(ticker: str) -> Optional[ExtensionRegistration]:
+    _ensure_builtin_extensions_loaded()
+
     raw = _normalize_ticker(ticker)
     if not raw:
         return None

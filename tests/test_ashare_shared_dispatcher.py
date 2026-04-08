@@ -2,10 +2,22 @@
 
 import unittest
 
-from tradingagents.extensions.market_ext import resolve_extension, route_market_extension
+from tradingagents.extensions.market_ext import (
+    reset_extensions_for_test,
+    resolve_extension,
+    route_market_extension,
+)
 
 
 class AShareSharedDispatcherTests(unittest.TestCase):
+    def test_resolve_extension_bootstraps_ashare_after_registry_reset(self):
+        reset_extensions_for_test()
+
+        extension = resolve_extension("600519")
+
+        self.assertIsNotNone(extension)
+        self.assertEqual(extension.name, "ashare")
+
     def test_six_digit_a_share_resolves_to_ashare_extension(self):
         extension = resolve_extension("600519")
         self.assertIsNotNone(extension)
