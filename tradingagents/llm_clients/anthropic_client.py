@@ -6,8 +6,14 @@ from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
 
 _PASSTHROUGH_KWARGS = (
-    "timeout", "max_retries", "api_key", "max_tokens",
-    "callbacks", "http_client", "http_async_client", "effort",
+    "timeout",
+    "max_retries",
+    "api_key",
+    "max_tokens",
+    "callbacks",
+    "http_client",
+    "http_async_client",
+    "effort",
 )
 
 
@@ -24,10 +30,17 @@ class NormalizedChatAnthropic(ChatAnthropic):
 
 
 class AnthropicClient(BaseLLMClient):
-    """Client for Anthropic Claude models."""
+    """Client for Anthropic Claude models and Anthropic-compatible providers."""
 
-    def __init__(self, model: str, base_url: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        model: str,
+        base_url: Optional[str] = None,
+        provider: str = "anthropic",
+        **kwargs,
+    ):
         super().__init__(model, base_url, **kwargs)
+        self.provider = provider
 
     def get_llm(self) -> Any:
         """Return configured ChatAnthropic instance."""
@@ -44,5 +57,4 @@ class AnthropicClient(BaseLLMClient):
         return NormalizedChatAnthropic(**llm_kwargs)
 
     def validate_model(self) -> bool:
-        """Validate model for Anthropic."""
-        return validate_model("anthropic", self.model)
+        return validate_model(self.provider, self.model)

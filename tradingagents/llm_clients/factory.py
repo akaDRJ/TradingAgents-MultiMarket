@@ -50,6 +50,7 @@ def create_llm_client(
         return AnthropicClient(
             model,
             base_url="https://api.minimaxi.com/anthropic",
+            provider="minimax",
             api_key=api_key,
             **kwargs,
         )
