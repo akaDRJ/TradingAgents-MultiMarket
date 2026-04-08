@@ -32,6 +32,10 @@ def detect_market_for_ticker(ticker: str) -> Market:
 
 
 def route_market_extension(method: str, *args, **kwargs) -> Any | None:
+    """Route to a matching extension.
+
+    Returns None only when no extension matches the input ticker.
+    """
     ticker = None
     if args:
         ticker = str(args[0])
@@ -42,4 +46,9 @@ def route_market_extension(method: str, *args, **kwargs) -> Any | None:
     if extension is None:
         return None
 
-    return extension.route_extension(method, *args, **kwargs)
+    result = extension.route_extension(method, *args, **kwargs)
+    if result is None:
+        raise ValueError(
+            f"Matched extension '{extension.name}' must return a non-None result from route_extension()."
+        )
+    return result
