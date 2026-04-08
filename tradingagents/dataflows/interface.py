@@ -51,23 +51,10 @@ from .alpha_vantage import (
     get_global_news as get_alpha_vantage_global_news,
 )
 from .alpha_vantage_common import AlphaVantageRateLimitError
+from tradingagents.extensions.market_ext import resolve_extension, route_market_extension
 
 # Configuration and routing logic
 from .config import get_config
-
-# Market extension (lazy import to avoid circular deps)
-_ashare_ext = None
-
-
-def _get_ashare_ext():
-    global _ashare_ext
-    if _ashare_ext is None:
-        try:
-            from tradingagents.extensions.ashare import routing as ext
-            _ashare_ext = ext
-        except ImportError:
-            _ashare_ext = None
-    return _ashare_ext
 
 # Tools organized by category
 TOOLS_CATEGORIES = {
@@ -173,35 +160,35 @@ def get_vendor(category: str, method: str = None) -> str:
     # Fall back to category-level configuration
     return config.get("data_vendors", {}).get(category, "default")
 
-def route_to_vendor(method: str, *args, **kwargs):
-    """Route method calls to appropriate vendor implementation with fallback support.
 
-    For A-share tickers, core price-data methods route through the extension
-    provider layer, while technical indicators intentionally reuse the existing
-    upstream stockstats/yfinance calculation path fed by A-share OHLCV data.
-    For US/HK tickers, the existing vendor chain remains unchanged.
-    """
+def _route_market_extension_if_available(method: str, *args, **kwargs):
     ticker = _get_ticker_from_args(args, kwargs)
-    if ticker and _is_ashare_ticker(ticker):
-        if method == "get_indicators":
-            return get_stock_stats_indicators_window(*args, **kwargs)
+    if not ticker:
+        return None
 
-        ext = _get_ashare_ext()
-        if ext is not None:
-            result = ext.route_extension(method, *args, **kwargs)
-            if result is not None:
-                return result
-            # Fall through to default routing if extension returns None
+    extension = resolve_extension(str(ticker))
+    if extension is None:
+        return None
 
-    # Default upstream routing for US/HK
+    if method == "get_indicators":
+        return get_stock_stats_indicators_window(*args, **kwargs)
+
+    return route_market_extension(method, *args, **kwargs)
+
+
+def route_to_vendor(method: str, *args, **kwargs):
+    """Route method calls to the market extension layer first, then upstream vendors."""
+    extension_result = _route_market_extension_if_available(method, *args, **kwargs)
+    if extension_result is not None:
+        return extension_result
+
     category = get_category_for_method(method)
     vendor_config = get_vendor(category, method)
-    primary_vendors = [v.strip() for v in vendor_config.split(',')]
+    primary_vendors = [v.strip() for v in vendor_config.split(",")]
 
     if method not in VENDOR_METHODS:
         raise ValueError(f"Method '{method}' not supported")
 
-    # Build fallback chain: primary vendors first, then remaining available vendors
     all_available_vendors = list(VENDOR_METHODS[method].keys())
     fallback_vendors = primary_vendors.copy()
     for vendor in all_available_vendors:
@@ -218,7 +205,7 @@ def route_to_vendor(method: str, *args, **kwargs):
         try:
             return impl_func(*args, **kwargs)
         except AlphaVantageRateLimitError:
-            continue  # Only rate limits trigger fallback
+            continue
 
     raise RuntimeError(f"No available vendor for '{method}'")
 
@@ -228,22 +215,3 @@ def _get_ticker_from_args(args, kwargs) -> str | None:
     if args:
         return str(args[0])
     return kwargs.get("symbol") or kwargs.get("ticker")
-
-
-def _is_ashare_ticker(ticker: str) -> bool:
-    """Quick check if ticker looks like an A-share code.
-
-    Checks:
-    - 6-digit pure number (A-share codes)
-    - Already has .SS or .SZ suffix
-    """
-    if not ticker:
-        return False
-    t = ticker.strip()
-    # Already has exchange suffix
-    if t.upper().endswith((".SS", ".SZ", ".BJ")):
-        return True
-    # 6-digit code
-    if len(t) == 6 and t.isdigit():
-        return True
-    return False

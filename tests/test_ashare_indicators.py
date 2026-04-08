@@ -11,7 +11,10 @@ from tradingagents.dataflows.stockstats_utils import load_ohlcv
 
 class AShareIndicatorBridgeTests(unittest.TestCase):
     def test_a_share_indicators_reuse_upstream_indicator_path(self):
-        with patch("tradingagents.dataflows.interface.get_stock_stats_indicators_window", return_value="RSI_OK") as mock_ind:
+        with (
+            patch("tradingagents.dataflows.interface.resolve_extension", return_value=object()),
+            patch("tradingagents.dataflows.interface.get_stock_stats_indicators_window", return_value="RSI_OK") as mock_ind,
+        ):
             result = route_to_vendor("get_indicators", "600519", "rsi", "2024-01-10", 30)
 
         self.assertEqual(result, "RSI_OK")
@@ -28,7 +31,10 @@ class AShareIndicatorBridgeTests(unittest.TestCase):
             "source": "sina",
         }
 
-        with patch("tradingagents.extensions.ashare.routing.route_extension", return_value=fake_result):
+        with (
+            patch("tradingagents.dataflows.stockstats_utils.resolve_extension", return_value=object()),
+            patch("tradingagents.dataflows.stockstats_utils.route_market_extension", return_value=fake_result),
+        ):
             df = load_ohlcv("600519", "2024-01-10")
 
         self.assertIsInstance(df, pd.DataFrame)
