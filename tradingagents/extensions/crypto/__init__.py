@@ -1,4 +1,5 @@
 from tradingagents.extensions.market_ext import get_extension, register_extension
+from tradingagents.extensions.market_ext.types import Market
 
 from . import providers  # noqa: F401
 from .normalize import detect_market, normalize_ticker
@@ -28,6 +29,7 @@ def ensure_registered() -> None:
         name="crypto",
         match_ticker=lambda ticker: detect_market(ticker).value == "crypto",
         detect_market=detect_market,
+        supports_method=lambda method: is_method_supported(method, Market.CRYPTO),
         route_extension=route_extension,
     )
 

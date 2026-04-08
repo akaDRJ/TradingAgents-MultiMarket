@@ -170,10 +170,7 @@ def _route_market_extension_if_available(method: str, *args, **kwargs):
     if extension is None:
         return None
 
-    # Task 3 intentionally stops before crypto news/social providers exist.
-    # Skip the crypto extension for those methods so upstream news vendors
-    # remain reachable until Task 4 adds dedicated crypto news support.
-    if extension.name == "crypto" and method in {"get_news", "get_global_news"}:
+    if not extension.supports_method(method):
         return None
 
     if method == "get_indicators":

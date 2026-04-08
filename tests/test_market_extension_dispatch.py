@@ -22,9 +22,11 @@ class SharedMarketExtensionDispatchTests(unittest.TestCase):
     @staticmethod
     def _restore_builtin_extensions():
         reset_extensions_for_test()
-        from tradingagents.extensions.ashare import ensure_registered
+        from tradingagents.extensions.ashare import ensure_registered as ensure_ashare_registered
+        from tradingagents.extensions.crypto import ensure_registered as ensure_crypto_registered
 
-        ensure_registered()
+        ensure_ashare_registered()
+        ensure_crypto_registered()
 
     def test_resolve_extension_returns_registered_match(self):
         register_extension(
@@ -71,6 +73,26 @@ class SharedMarketExtensionDispatchTests(unittest.TestCase):
         result = route_market_extension("get_stock_data", "AAPL", "2024-01-01", "2024-01-31")
 
         self.assertIsNone(result)
+
+    def test_route_market_extension_returns_none_for_unsupported_method(self):
+        seen = []
+
+        def fake_route(method, *args, **kwargs):
+            seen.append((method, args, kwargs))
+            return "SHOULD_NOT_BE_USED"
+
+        register_extension(
+            name="crypto",
+            match_ticker=lambda ticker: ticker.upper().startswith("BTC"),
+            detect_market=lambda ticker: Market.CRYPTO,
+            route_extension=fake_route,
+            supports_method=lambda method: method == "get_stock_data",
+        )
+
+        result = route_market_extension("get_news", "BTCUSDT", "2024-01-01", "2024-01-31")
+
+        self.assertIsNone(result)
+        self.assertEqual(seen, [])
 
     def test_detect_market_for_ticker_uses_normalized_ticker(self):
         register_extension(

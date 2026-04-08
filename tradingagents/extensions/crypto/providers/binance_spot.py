@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import requests
 
@@ -23,14 +23,44 @@ class BinanceSpotProvider:
         if not symbols or symbols[0].get("status") != "TRADING":
             raise RuntimeError(f"Binance spot symbol unavailable: {symbol}")
 
+    def _window_params(self, start_date: str | None, end_date: str | None) -> dict[str, int]:
+        params: dict[str, int] = {}
+        start_dt = datetime.fromisoformat(start_date).replace(tzinfo=UTC) if start_date else None
+        end_dt = (
+            datetime.fromisoformat(end_date).replace(tzinfo=UTC) + timedelta(days=1) - timedelta(milliseconds=1)
+            if end_date
+            else None
+        )
+        if start_dt is not None:
+            params["startTime"] = int(start_dt.timestamp() * 1000)
+        if end_dt is not None:
+            params["endTime"] = int(end_dt.timestamp() * 1000)
+
+        if start_dt is not None and end_dt is not None:
+            span_days = max(int(((end_dt + timedelta(milliseconds=1)) - start_dt).days), 1)
+            params["limit"] = min(span_days, 1000)
+        elif params:
+            params["limit"] = 1000
+
+        return params
+
     def get_stock_data(self, ticker: str, start_date: str | None = None, end_date: str | None = None, **kwargs):
         self._ensure_symbol(ticker)
-        rows = self._get("/api/v3/klines", {"symbol": ticker, "interval": "1d", "limit": 365})
+        params = {"symbol": ticker, "interval": "1d"}
+        params.update(self._window_params(start_date, end_date))
+        if "limit" not in params:
+            params["limit"] = 365
+        rows = self._get("/api/v3/klines", params)
         data = []
         for row in rows:
+            row_date = datetime.fromtimestamp(row[0] / 1000, UTC).strftime("%Y-%m-%d")
+            if start_date and row_date < start_date:
+                continue
+            if end_date and row_date > end_date:
+                continue
             data.append(
                 {
-                    "date": datetime.fromtimestamp(row[0] / 1000, UTC).strftime("%Y-%m-%d"),
+                    "date": row_date,
                     "open": float(row[1]),
                     "high": float(row[2]),
                     "low": float(row[3]),

@@ -28,6 +28,7 @@ def ensure_registered() -> None:
         name="ashare",
         match_ticker=_matches_ashare_extension,
         detect_market=detect_market,
+        supports_method=lambda method: is_method_supported(method, Market.A_SHARE),
         route_extension=route_extension,
     )
 

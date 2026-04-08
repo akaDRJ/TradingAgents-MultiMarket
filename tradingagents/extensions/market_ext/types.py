@@ -21,4 +21,5 @@ class ExtensionRegistration:
     name: str
     match_ticker: Callable[[str], bool]
     detect_market: Callable[[str], Market]
+    supports_method: Callable[[str], bool]
     route_extension: Callable[..., Any]

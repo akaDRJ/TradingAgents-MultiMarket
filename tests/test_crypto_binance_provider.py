@@ -1,6 +1,7 @@
 """Tests for Binance spot crypto provider."""
 
 import unittest
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 from tradingagents.extensions.crypto.providers.binance_spot import BinanceSpotProvider
@@ -27,6 +28,15 @@ class BinanceSpotProviderTests(unittest.TestCase):
         self.assertEqual(result["ticker"], "BTCUSDT")
         self.assertEqual(result["provider"], "binance_spot")
         self.assertEqual(result["data"][0]["close"], 42300.0)
+        klines_params = mock_get.call_args_list[1].kwargs["params"]
+        self.assertEqual(
+            klines_params["startTime"],
+            int(datetime(2024, 1, 1, tzinfo=UTC).timestamp() * 1000),
+        )
+        self.assertEqual(
+            klines_params["endTime"],
+            int(datetime(2024, 1, 2, 23, 59, 59, 999000, tzinfo=UTC).timestamp() * 1000),
+        )
 
 
 if __name__ == "__main__":

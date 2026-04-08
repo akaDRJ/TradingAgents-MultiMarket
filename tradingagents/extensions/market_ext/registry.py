@@ -13,11 +13,13 @@ def register_extension(
     match_ticker,
     detect_market,
     route_extension,
+    supports_method=None,
 ) -> None:
     _EXTENSIONS[name] = ExtensionRegistration(
         name=name,
         match_ticker=match_ticker,
         detect_market=detect_market,
+        supports_method=supports_method or (lambda method: True),
         route_extension=route_extension,
     )
 

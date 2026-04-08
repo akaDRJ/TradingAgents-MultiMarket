@@ -46,6 +46,9 @@ def route_market_extension(method: str, *args, **kwargs) -> Any | None:
     if extension is None:
         return None
 
+    if not extension.supports_method(method):
+        return None
+
     result = extension.route_extension(method, *args, **kwargs)
     if result is None:
         raise ValueError(
