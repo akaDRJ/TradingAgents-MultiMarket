@@ -18,7 +18,7 @@ from tradingagents.agents.utils.news_data_tools import (
     get_insider_transactions,
     get_global_news
 )
-from tradingagents.extensions.market_ext import Market, detect_market_for_ticker
+from tradingagents.extensions.crypto.normalize import detect_market as detect_crypto_market
 
 
 def get_language_instruction() -> str:
@@ -45,9 +45,7 @@ def build_instrument_context(ticker: str) -> str:
 
 
 def build_market_specific_instruction(ticker: str, analyst_kind: str) -> str:
-    market = detect_market_for_ticker(ticker)
-
-    if market != Market.CRYPTO:
+    if detect_crypto_market(ticker).name != "CRYPTO":
         return ""
 
     if analyst_kind == "fundamentals":
