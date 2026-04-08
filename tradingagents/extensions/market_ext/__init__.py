@@ -18,10 +18,11 @@ __all__ = [
 
 
 def _bootstrap_builtin_extensions() -> None:
-    ashare_module = importlib.import_module("tradingagents.extensions.ashare")
-    ensure_registered = getattr(ashare_module, "ensure_registered", None)
-    if callable(ensure_registered):
-        ensure_registered()
+    for module_name in ("tradingagents.extensions.ashare", "tradingagents.extensions.crypto"):
+        extension_module = importlib.import_module(module_name)
+        ensure_registered = getattr(extension_module, "ensure_registered", None)
+        if callable(ensure_registered):
+            ensure_registered()
 
 
 _bootstrap_builtin_extensions()
