@@ -17,7 +17,7 @@ from . import providers  # noqa: F401
 
 
 def _matches_ashare_extension(ticker: str) -> bool:
-    return detect_market(ticker) in {Market.A_SHARE, Market.HK}
+    return detect_market(ticker) == Market.A_SHARE
 
 
 def ensure_registered() -> None:

@@ -23,6 +23,10 @@ class AShareSharedDispatcherTests(unittest.TestCase):
         self.assertIsNotNone(extension)
         self.assertEqual(extension.name, "ashare")
 
+    def test_hk_ticker_does_not_resolve_to_ashare_extension(self):
+        extension = resolve_extension("0700.HK")
+        self.assertIsNone(extension)
+
     def test_shared_dispatcher_routes_a_share_stock_data_to_existing_router(self):
         result = route_market_extension("get_stock_data", "600519", "2024-01-01", "2024-01-31")
 
