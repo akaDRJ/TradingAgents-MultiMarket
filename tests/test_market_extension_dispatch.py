@@ -17,7 +17,14 @@ from tradingagents.extensions.market_ext import (
 class SharedMarketExtensionDispatchTests(unittest.TestCase):
     def setUp(self):
         reset_extensions_for_test()
-        self.addCleanup(reset_extensions_for_test)
+        self.addCleanup(self._restore_builtin_extensions)
+
+    @staticmethod
+    def _restore_builtin_extensions():
+        reset_extensions_for_test()
+        from tradingagents.extensions.ashare import ensure_registered
+
+        ensure_registered()
 
     def test_resolve_extension_returns_registered_match(self):
         register_extension(
