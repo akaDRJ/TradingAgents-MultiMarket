@@ -39,7 +39,10 @@ class AShareFundamentalsBridgeTests(unittest.TestCase):
         self.assertNotIn("123.0", out)
 
     def test_route_to_vendor_reaches_fundamentals_extension_path(self):
-        with patch("tradingagents.extensions.ashare.routing.route_extension", return_value="FUND_OK") as mock_route:
+        with (
+            patch("tradingagents.dataflows.interface.resolve_extension", return_value=object()),
+            patch("tradingagents.dataflows.interface.route_market_extension", return_value="FUND_OK") as mock_route,
+        ):
             out = route_to_vendor("get_fundamentals", "600519", "2024-12-31")
         self.assertEqual(out, "FUND_OK")
         mock_route.assert_called_once_with("get_fundamentals", "600519", "2024-12-31")

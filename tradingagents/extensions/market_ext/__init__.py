@@ -1,3 +1,5 @@
+import importlib
+
 from .dispatcher import detect_market_for_ticker, resolve_extension, route_market_extension
 from .registry import get_extension, list_extensions, register_extension, reset_extensions_for_test
 from .types import ExtensionRegistration, Market
@@ -13,3 +15,13 @@ __all__ = [
     "resolve_extension",
     "route_market_extension",
 ]
+
+
+def _bootstrap_builtin_extensions() -> None:
+    ashare_module = importlib.import_module("tradingagents.extensions.ashare")
+    ensure_registered = getattr(ashare_module, "ensure_registered", None)
+    if callable(ensure_registered):
+        ensure_registered()
+
+
+_bootstrap_builtin_extensions()

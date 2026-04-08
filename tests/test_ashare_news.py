@@ -31,7 +31,10 @@ class AShareNewsBridgeTests(unittest.TestCase):
         self.assertIn("https://example.com/news/1", out)
 
     def test_route_to_vendor_reaches_news_extension_path(self):
-        with patch("tradingagents.extensions.ashare.routing.route_extension", return_value="NEWS_OK") as mock_route:
+        with (
+            patch("tradingagents.dataflows.interface.resolve_extension", return_value=object()),
+            patch("tradingagents.dataflows.interface.route_market_extension", return_value="NEWS_OK") as mock_route,
+        ):
             out = route_to_vendor("get_news", "600519", "2024-01-01", "2024-01-10")
         self.assertEqual(out, "NEWS_OK")
         mock_route.assert_called_once_with("get_news", "600519", "2024-01-01", "2024-01-10")

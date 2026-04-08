@@ -2,6 +2,7 @@
 
 import unittest
 
+from tradingagents.extensions.ashare import ensure_registered
 from tradingagents.extensions.market_ext import (
     reset_extensions_for_test,
     resolve_extension,
@@ -10,8 +11,9 @@ from tradingagents.extensions.market_ext import (
 
 
 class AShareSharedDispatcherTests(unittest.TestCase):
-    def test_resolve_extension_bootstraps_ashare_after_registry_reset(self):
+    def test_ensure_registered_restores_ashare_after_registry_reset(self):
         reset_extensions_for_test()
+        ensure_registered()
 
         extension = resolve_extension("600519")
 
