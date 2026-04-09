@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 import datetime
 import typer
@@ -38,6 +39,79 @@ app = typer.Typer(
     help="TradingAgents CLI: Multi-Agents LLM Financial Trading Framework",
     add_completion=True,  # Enable shell completion
 )
+
+
+def is_noninteractive_mode() -> bool:
+    value = os.getenv("TRADINGAGENTS_NONINTERACTIVE", "")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def finalize_analysis_output(
+    final_state,
+    selections,
+    config,
+    *,
+    noninteractive: bool | None = None,
+    prompt_fn=typer.prompt,
+    save_report_fn=save_report_to_disk,
+    display_report_fn=None,
+):
+    if display_report_fn is None:
+        display_report_fn = display_complete_report
+
+    console.print("\n[bold cyan]Analysis Complete![/bold cyan]\n")
+
+    if noninteractive is None:
+        noninteractive = is_noninteractive_mode()
+
+    saved_report = None
+
+    if noninteractive:
+        default_path = build_default_report_save_path(
+            config=config,
+            ticker=selections["ticker"],
+            analysis_date=selections["analysis_date"],
+        )
+        saved_report = save_report_fn(
+            final_state,
+            selections["ticker"],
+            default_path,
+            include_subdirectories=False,
+        )
+        console.print(f"\n[green]✓ Report saved to:[/green] {default_path.resolve()}")
+        console.print(f"  [dim]Complete report:[/dim] {saved_report.name}")
+        return {"saved_report": saved_report, "displayed": False}
+
+    save_choice = prompt_fn("Save report?", default="Y").strip().upper()
+    if save_choice in ("Y", "YES", ""):
+        default_path = build_default_report_save_path(
+            config=config,
+            ticker=selections["ticker"],
+            analysis_date=selections["analysis_date"],
+        )
+        save_path_str = prompt_fn(
+            "Save path (press Enter for default)", default=str(default_path)
+        ).strip()
+        save_path = Path(save_path_str)
+        try:
+            saved_report = save_report_fn(
+                final_state,
+                selections["ticker"],
+                save_path,
+                include_subdirectories=save_path.resolve() != default_path.resolve(),
+            )
+            console.print(f"\n[green]✓ Report saved to:[/green] {save_path.resolve()}")
+            console.print(f"  [dim]Complete report:[/dim] {saved_report.name}")
+        except Exception as e:
+            console.print(f"[red]Error saving report: {e}[/red]")
+
+    displayed = False
+    display_choice = prompt_fn("\nDisplay full report on screen?", default="Y").strip().upper()
+    if display_choice in ("Y", "YES", ""):
+        display_report_fn(final_state)
+        displayed = True
+
+    return {"saved_report": saved_report, "displayed": displayed}
 
 
 # Create a deque to store recent messages with a maximum length
@@ -1196,39 +1270,7 @@ def run_analysis():
 
         update_display(layout, stats_handler=stats_handler, start_time=start_time)
 
-    # Post-analysis prompts (outside Live context for clean interaction)
-    console.print("\n[bold cyan]Analysis Complete![/bold cyan]\n")
-
-    # Prompt to save report
-    save_choice = typer.prompt("Save report?", default="Y").strip().upper()
-    if save_choice in ("Y", "YES", ""):
-        default_path = build_default_report_save_path(
-            config=config,
-            ticker=selections["ticker"],
-            analysis_date=selections["analysis_date"],
-        )
-        save_path_str = typer.prompt(
-            "Save path (press Enter for default)", default=str(default_path)
-        ).strip()
-        save_path = Path(save_path_str)
-        try:
-            report_file = save_report_to_disk(
-                final_state,
-                selections["ticker"],
-                save_path,
-                include_subdirectories=save_path.resolve() != default_path.resolve(),
-            )
-            console.print(f"\n[green]✓ Report saved to:[/green] {save_path.resolve()}")
-            console.print(f"  [dim]Complete report:[/dim] {report_file.name}")
-        except Exception as e:
-            console.print(f"[red]Error saving report: {e}[/red]")
-
-    # Prompt to display full report
-    display_choice = (
-        typer.prompt("\nDisplay full report on screen?", default="Y").strip().upper()
-    )
-    if display_choice in ("Y", "YES", ""):
-        display_complete_report(final_state)
+    finalize_analysis_output(final_state, selections, config)
 
 
 @app.command()
