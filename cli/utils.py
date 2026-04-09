@@ -4,6 +4,11 @@ from typing import List, Optional, Tuple, Dict
 from rich.console import Console
 
 from cli.models import AnalystType
+from tradingagents.app.options import (
+    OUTPUT_LANGUAGE_CHOICES,
+    PROVIDER_CHOICES,
+    RESEARCH_DEPTH_CHOICES,
+)
 from tradingagents.llm_clients.model_catalog import get_model_options
 
 console = Console()
@@ -122,17 +127,11 @@ def select_analysts() -> List[AnalystType]:
 def select_research_depth() -> int:
     """Select research depth using an interactive selection."""
 
-    # Define research depth options with their corresponding values
-    DEPTH_OPTIONS = [
-        ("Shallow - Quick research, few debate and strategy discussion rounds", 1),
-        ("Medium - Middle ground, moderate debate rounds and strategy discussion", 3),
-        ("Deep - Comprehensive research, in depth debate and strategy discussion", 5),
-    ]
-
     choice = questionary.select(
         "Select Your [Research Depth]:",
         choices=[
-            questionary.Choice(display, value=value) for display, value in DEPTH_OPTIONS
+            questionary.Choice(display, value=value)
+            for display, value in RESEARCH_DEPTH_CHOICES
         ],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
@@ -260,21 +259,11 @@ def select_deep_thinking_agent(provider) -> str:
 
 def select_llm_provider() -> tuple[str, str | None]:
     """Select the LLM provider and its API endpoint."""
-    BASE_URLS = [
-        ("OpenAI", "https://api.openai.com/v1"),
-        ("Google", None),  # google-genai SDK manages its own endpoint
-        ("Anthropic", "https://api.anthropic.com/"),
-        ("MiniMax", "https://api.minimaxi.com/anthropic"),
-        ("xAI", "https://api.x.ai/v1"),
-        ("Openrouter", "https://openrouter.ai/api/v1"),
-        ("Ollama", "http://localhost:11434/v1"),
-    ]
-
     choice = questionary.select(
         "Select your LLM Provider:",
         choices=[
-            questionary.Choice(display, value=(display, value))
-            for display, value in BASE_URLS
+            questionary.Choice(display, value=(provider, backend_url))
+            for display, provider, backend_url in PROVIDER_CHOICES
         ],
         instruction="\n- Use arrow keys to navigate\n- Press Enter to select",
         style=questionary.Style(
@@ -290,10 +279,8 @@ def select_llm_provider() -> tuple[str, str | None]:
         console.print("\n[red]no OpenAI backend selected. Exiting...[/red]")
         exit(1)
 
-    display_name, url = choice
-    print(f"You selected: {display_name}\tURL: {url}")
-
-    return display_name, url
+    provider, url = choice
+    return provider, url
 
 
 def ask_openai_reasoning_effort() -> str:
@@ -365,17 +352,13 @@ def ask_output_language() -> str:
     choice = questionary.select(
         "Select Output Language:",
         choices=[
-            questionary.Choice("English (default)", "English"),
-            questionary.Choice("Chinese (中文)", "Chinese"),
-            questionary.Choice("Japanese (日本語)", "Japanese"),
-            questionary.Choice("Korean (한국어)", "Korean"),
-            questionary.Choice("Hindi (हिन्दी)", "Hindi"),
-            questionary.Choice("Spanish (Español)", "Spanish"),
-            questionary.Choice("Portuguese (Português)", "Portuguese"),
-            questionary.Choice("French (Français)", "French"),
-            questionary.Choice("German (Deutsch)", "German"),
-            questionary.Choice("Arabic (العربية)", "Arabic"),
-            questionary.Choice("Russian (Русский)", "Russian"),
+            questionary.Choice(
+                "English (default)" if language == "English" else language,
+                language,
+            )
+            for language in OUTPUT_LANGUAGE_CHOICES
+        ]
+        + [
             questionary.Choice("Custom language", "custom"),
         ],
         style=questionary.Style(
