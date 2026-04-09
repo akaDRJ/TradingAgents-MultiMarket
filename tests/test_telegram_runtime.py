@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 from tradingagents.app.analysis_request import build_default_request
+from tradingagents.telegram_bot.main import register_bot_commands
 from tradingagents.telegram_bot.runtime import TelegramJobController
 from tradingagents.telegram_bot.store import TelegramStateStore
 
@@ -24,6 +25,22 @@ class _FakeProcess:
 
 
 class TelegramRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_register_bot_commands_sets_slash_menu_entries(self):
+        bot = AsyncMock()
+
+        await register_bot_commands(bot)
+
+        bot.set_my_commands.assert_awaited_once()
+        commands = bot.set_my_commands.await_args.kwargs["commands"]
+        self.assertEqual(
+            [(command.command, command.description) for command in commands],
+            [
+                ("analyze", "Configure and start an analysis"),
+                ("status", "Show the active analysis status"),
+                ("cancel", "Cancel the active analysis"),
+            ],
+        )
+
     async def test_start_job_persists_active_job_metadata(self):
         request = build_default_request("NVDA", "2026-04-09")
 

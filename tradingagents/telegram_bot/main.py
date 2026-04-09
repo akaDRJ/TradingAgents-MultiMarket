@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from telegram import Update
+from telegram import BotCommand, Update
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -31,6 +31,16 @@ from tradingagents.telegram_bot.store import TelegramStateStore
 def _ensure_allowed(update: Update) -> bool:
     allowed_chat_id = os.environ["TELEGRAM_ALLOWED_CHAT_ID"]
     return str(update.effective_chat.id) == str(allowed_chat_id)
+
+
+async def register_bot_commands(bot) -> None:
+    await bot.set_my_commands(
+        commands=[
+            BotCommand("analyze", "Configure and start an analysis"),
+            BotCommand("status", "Show the active analysis status"),
+            BotCommand("cancel", "Cancel the active analysis"),
+        ]
+    )
 
 
 def _build_analyst_choices(selected: tuple[str, ...]):
@@ -201,7 +211,12 @@ def main() -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     store = TelegramStateStore(state_root)
     service = TelegramControlService(store)
-    application = ApplicationBuilder().token(token).build()
+    application = (
+        ApplicationBuilder()
+        .token(token)
+        .post_init(lambda app: register_bot_commands(app.bot))
+        .build()
+    )
     application.bot_data["state_store"] = store
     application.bot_data["service"] = service
     application.bot_data["job_controller"] = TelegramJobController(
