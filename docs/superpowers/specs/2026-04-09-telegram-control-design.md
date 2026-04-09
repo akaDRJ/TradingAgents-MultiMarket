@@ -16,6 +16,7 @@ The Telegram experience should preserve the CLI's option-driven workflow, but it
 - Telegram must not drive the existing `questionary` / `rich live` terminal flow through a pseudo-terminal.
 - Runtime stays Docker-safe and self-contained.
 - The Telegram path should reuse the core TradingAgents graph and report-writing behavior instead of forking analysis logic.
+- Telegram must render provider, model, and provider-setting options from shared catalogs rather than maintaining a Telegram-only copy.
 - First version is private, single-user, and single-active-job only.
 - When a job is already running and Jin starts a new one, the bot must prompt to cancel the current job and switch rather than silently queueing or running both.
 - Telegram should remember the last successful configuration and use it as the next default.
@@ -126,6 +127,7 @@ The Telegram bot owns:
 - result delivery
 
 The bot should not contain TradingAgents analysis logic beyond translating Telegram selections into a shared analysis request.
+It should also read provider/model option data from shared application-layer catalogs so future provider additions appear in Telegram without Telegram-specific rewiring, as long as they fit the existing option shape.
 
 ## Telegram Interaction Design
 
