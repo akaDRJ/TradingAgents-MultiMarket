@@ -151,6 +151,22 @@ cp .env.example .env  # add your API keys
 docker compose run --rm tradingagents
 ```
 
+### Telegram Control Surface
+
+This fork can optionally expose a private Telegram control surface for remote analysis control.
+
+Setup:
+
+    cp .env.example .env
+    # set TELEGRAM_BOT_TOKEN and TELEGRAM_ALLOWED_CHAT_ID
+    docker compose up -d telegram-bot
+
+Supported commands:
+
+- `/analyze`
+- `/status`
+- `/cancel`
+
 For local models with Ollama:
 ```bash
 docker compose --profile ollama run --rm tradingagents-ollama

@@ -39,6 +39,7 @@ dependencies = [
 
 [project.scripts]
 tradingagents = "cli.main:app"
+tradingagents-telegram = "tradingagents.telegram_bot.main:main"
 
 [tool.setuptools.packages.find]
 include = ["tradingagents*", "cli*"]
