@@ -36,6 +36,17 @@ class TelegramControlService:
             "text": build_draft_summary(session.request),
         }
 
+    def restore_last_successful(self, today_str: str) -> DraftSession:
+        request = self.store.load_last_successful() or self._default_request(today_str)
+        session = DraftSession(request=request)
+        self.store.save_draft_session(session)
+        return session
+
+    def reset_to_defaults(self, today_str: str) -> DraftSession:
+        session = DraftSession(request=self._default_request(today_str))
+        self.store.save_draft_session(session)
+        return session
+
     def set_waiting_field(self, field_name: str) -> DraftSession:
         session = self.store.load_draft_session()
         if session is None:
