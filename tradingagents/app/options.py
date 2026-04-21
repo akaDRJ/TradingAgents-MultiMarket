@@ -15,7 +15,11 @@ PROVIDER_CHOICES = (
     ("Anthropic", "anthropic", "https://api.anthropic.com/"),
     ("MiniMax", "minimax", "https://api.minimaxi.com/anthropic"),
     ("xAI", "xai", "https://api.x.ai/v1"),
+    ("DeepSeek", "deepseek", "https://api.deepseek.com"),
+    ("Qwen", "qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+    ("GLM", "glm", "https://open.bigmodel.cn/api/paas/v4/"),
     ("OpenRouter", "openrouter", "https://openrouter.ai/api/v1"),
+    ("Azure OpenAI", "azure", None),
     ("Ollama", "ollama", "http://localhost:11434/v1"),
 )
 

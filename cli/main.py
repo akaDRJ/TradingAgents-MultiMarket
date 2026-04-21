@@ -7,8 +7,9 @@ from functools import wraps
 from rich.console import Console
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
+load_dotenv(".env.enterprise", override=False)
 from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.live import Live
@@ -158,7 +159,7 @@ class MessageBuffer:
         self.current_agent = None
         self.report_sections = {}
         self.selected_analysts = []
-        self._last_message_id = None
+        self._processed_message_ids = set()
 
     def init_for_analysis(self, selected_analysts):
         """Initialize agent status and report sections based on selected analysts.
@@ -193,7 +194,7 @@ class MessageBuffer:
         self.current_agent = None
         self.messages.clear()
         self.tool_calls.clear()
-        self._last_message_id = None
+        self._processed_message_ids.clear()
 
     def get_completed_reports_count(self):
         """Count reports that are finalized (their finalizing agent is completed).
@@ -965,6 +966,26 @@ def format_tool_args(args, max_length=80) -> str:
     return result
 
 
+def record_stream_messages(message_buffer, messages) -> None:
+    """Record unique streamed messages and tool calls for the CLI view."""
+    for message in messages:
+        msg_id = getattr(message, "id", None)
+        if msg_id is not None:
+            if msg_id in message_buffer._processed_message_ids:
+                continue
+            message_buffer._processed_message_ids.add(msg_id)
+
+        msg_type, content = classify_message_type(message)
+        if content and content.strip():
+            message_buffer.add_message(msg_type, content)
+
+        for tool_call in getattr(message, "tool_calls", []) or []:
+            if isinstance(tool_call, dict):
+                message_buffer.add_tool_call(tool_call["name"], tool_call["args"])
+            else:
+                message_buffer.add_tool_call(tool_call.name, tool_call.args)
+
+
 def run_analysis():
     # First get all user selections
     selections = get_user_selections()
@@ -1113,30 +1134,7 @@ def run_analysis():
         # Stream the analysis
         trace = []
         for chunk in graph.graph.stream(init_agent_state, **args):
-            # Process messages if present (skip duplicates via message ID)
-            if len(chunk["messages"]) > 0:
-                last_message = chunk["messages"][-1]
-                msg_id = getattr(last_message, "id", None)
-
-                if msg_id != message_buffer._last_message_id:
-                    message_buffer._last_message_id = msg_id
-
-                    # Add message to buffer
-                    msg_type, content = classify_message_type(last_message)
-                    if content and content.strip():
-                        message_buffer.add_message(msg_type, content)
-
-                    # Handle tool calls
-                    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-                        for tool_call in last_message.tool_calls:
-                            if isinstance(tool_call, dict):
-                                message_buffer.add_tool_call(
-                                    tool_call["name"], tool_call["args"]
-                                )
-                            else:
-                                message_buffer.add_tool_call(
-                                    tool_call.name, tool_call.args
-                                )
+            record_stream_messages(message_buffer, chunk.get("messages", []))
 
             # Update analyst statuses based on report state (runs on every chunk)
             update_analyst_statuses(message_buffer, chunk)

@@ -67,6 +67,7 @@ class TradingAgentsGraph:
 
         # Create necessary directories
         os.makedirs(self.config["data_cache_dir"], exist_ok=True)
+        os.makedirs(self.config["results_dir"], exist_ok=True)
 
         # Initialize LLMs with provider-specific thinking configuration
         llm_kwargs = self._get_provider_kwargs()

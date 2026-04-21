@@ -1,11 +1,19 @@
 import os
 
+
+def _get_data_cache_dir() -> str:
+    cache_dir = (
+        os.getenv("TRADINGAGENTS_DATA_CACHE_DIR")
+        or os.getenv("TRADINGAGENTS_CACHE_DIR")
+        or "./data_cache"
+    )
+    return os.path.abspath(cache_dir)
+
+
 DEFAULT_CONFIG = {
     "project_dir": os.path.abspath(os.path.join(os.path.dirname(__file__), ".")),
     "results_dir": os.getenv("TRADINGAGENTS_RESULTS_DIR", "./results"),
-    "data_cache_dir": os.path.abspath(
-        os.getenv("TRADINGAGENTS_DATA_CACHE_DIR", "./data_cache")
-    ),
+    "data_cache_dir": _get_data_cache_dir(),
     # LLM settings
     "llm_provider": "openai",
     "deep_think_llm": "gpt-5.4",
