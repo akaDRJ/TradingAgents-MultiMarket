@@ -1,7 +1,10 @@
 import unittest
 import warnings
 
+import pytest
+
 from tradingagents.llm_clients.base_client import BaseLLMClient
+from tradingagents.llm_clients.factory import create_llm_client
 from tradingagents.llm_clients.model_catalog import get_known_models
 from tradingagents.llm_clients.validators import validate_model
 
@@ -19,6 +22,7 @@ class DummyLLMClient(BaseLLMClient):
         return validate_model(self.provider, self.model)
 
 
+@pytest.mark.unit
 class ModelValidationTests(unittest.TestCase):
     def test_cli_catalog_models_are_all_validator_approved(self):
         for provider, models in get_known_models().items():
@@ -50,3 +54,10 @@ class ModelValidationTests(unittest.TestCase):
                     client.get_llm()
 
                 self.assertEqual(caught, [])
+
+    def test_minimax_factory_uses_anthropic_compatible_client(self):
+        client = create_llm_client("minimax", "MiniMax-M2.7-highspeed", api_key="test-key")
+
+        self.assertEqual(client.provider, "minimax")
+        self.assertEqual(client.base_url, "https://api.minimaxi.com/anthropic")
+        self.assertEqual(client.kwargs["api_key"], "test-key")

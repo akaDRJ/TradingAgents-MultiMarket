@@ -19,6 +19,22 @@ from typing import Optional
 from .types import Market
 
 
+_INDEX_CANONICAL = "000001.SS"
+_INDEX_DISPLAY_NAME = "上证指数"
+_INDEX_ALIASES = {
+    "上证指数": _INDEX_CANONICAL,
+    "沪指": _INDEX_CANONICAL,
+    "上证综指": _INDEX_CANONICAL,
+    "SSE COMPOSITE": _INDEX_CANONICAL,
+    "SSE COMPOSITE INDEX": _INDEX_CANONICAL,
+    "SHANGHAI COMPOSITE": _INDEX_CANONICAL,
+    "SHANGHAI COMPOSITE INDEX": _INDEX_CANONICAL,
+    "000001.SS": _INDEX_CANONICAL,
+    "000001.SH": _INDEX_CANONICAL,
+}
+_INDEX_ALIASES_UPPER = {key.upper(): value for key, value in _INDEX_ALIASES.items()}
+
+
 # A-share code ranges by exchange
 # SSE (Shanghai Stock Exchange): 600-605, 688 (STAR)
 # SZSE (Shenzhen Stock Exchange): 000, 001, 002, 003, 300 (ChiNext), 301
@@ -45,6 +61,25 @@ _HK_PATTERNS = [
 _HK_SUFFIX = re.compile(r"\.HK$", re.IGNORECASE)
 
 
+def normalize_index_ticker(ticker: str) -> Optional[str]:
+    """Return the canonical ticker for a supported index alias."""
+    if not ticker:
+        return None
+
+    raw = ticker.strip()
+    if not raw:
+        return None
+
+    return _INDEX_ALIASES.get(raw) or _INDEX_ALIASES_UPPER.get(raw.upper())
+
+
+def get_index_display_name(ticker: str) -> Optional[str]:
+    """Return the human-friendly index name for a supported index ticker."""
+    if normalize_index_ticker(ticker) == _INDEX_CANONICAL:
+        return _INDEX_DISPLAY_NAME
+    return None
+
+
 def detect_market(ticker: str) -> Market:
     """Detect market from a ticker string.
 
@@ -62,10 +97,15 @@ def detect_market(ticker: str) -> Market:
         return Market.UNKNOWN
     upper = t.upper()
 
+    if normalize_index_ticker(t):
+        return Market.INDEX
+
     # Already has explicit suffix
     if _HK_SUFFIX.search(t):
         return Market.HK
     if upper.endswith(".SS"):
+        return Market.A_SHARE
+    if upper.endswith(".SH"):
         return Market.A_SHARE
     if upper.endswith(".SZ"):
         return Market.A_SHARE
@@ -116,6 +156,8 @@ def get_exchange_for_a_share(ticker: str) -> Optional[str]:
     t = ticker.strip()
     # Already has suffix
     if t.upper().endswith(".SS"):
+        return ".SS"
+    if t.upper().endswith(".SH"):
         return ".SS"
     if t.upper().endswith(".SZ"):
         return ".SZ"

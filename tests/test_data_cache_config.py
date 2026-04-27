@@ -45,12 +45,17 @@ class DataCacheConfigTests(unittest.TestCase):
         )
 
         fake_client = type("FakeClient", (), {"get_llm": lambda self: object()})
+        fake_workflow = type(
+            "FakeWorkflow",
+            (),
+            {"compile": lambda self: object()},
+        )
         fake_graph_setup = type(
             "FakeGraphSetup",
             (),
             {
                 "__init__": lambda self, *args, **kwargs: None,
-                "setup_graph": lambda self, selected_analysts: object(),
+                "setup_graph": lambda self, selected_analysts: fake_workflow(),
             },
         )
 
@@ -60,7 +65,7 @@ class DataCacheConfigTests(unittest.TestCase):
             "tradingagents.graph.trading_graph.create_llm_client",
             return_value=fake_client(),
         ), patch(
-            "tradingagents.graph.trading_graph.FinancialSituationMemory",
+            "tradingagents.graph.trading_graph.TradingMemoryLog",
             return_value=object(),
         ), patch(
             "tradingagents.graph.trading_graph.GraphSetup",

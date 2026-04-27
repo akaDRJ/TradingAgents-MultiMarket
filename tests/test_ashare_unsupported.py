@@ -11,6 +11,11 @@ class AShareUnsupportedPathTests(unittest.TestCase):
         self.assertIn("not supported", out)
         self.assertIn("a_share", out)
 
+    def test_company_fundamentals_are_explicitly_unsupported_for_index(self):
+        out = route_to_vendor("get_fundamentals", "000001.SS", "2024-01-10")
+        self.assertIn("not supported", out)
+        self.assertIn("index", out)
+
     def test_global_news_currently_returns_graceful_non_crash_response(self):
         out = route_to_vendor("get_global_news", "2024-01-10", 7, 5)
         self.assertIsInstance(out, str)

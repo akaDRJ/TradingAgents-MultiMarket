@@ -23,6 +23,17 @@ MARKET_POLICY: Dict[Market, Dict[str, List[str]]] = {
         "get_global_news": ["google_cn"],
         "get_insider_transactions": None,  # Unsupported for A-share
     },
+    Market.INDEX: {
+        "get_stock_data": ["akshare", "tushare", "baostock"],
+        "get_indicators": ["akshare", "tushare"],
+        "get_fundamentals": None,
+        "get_balance_sheet": None,
+        "get_cashflow": None,
+        "get_income_statement": None,
+        "get_news": None,
+        "get_global_news": None,
+        "get_insider_transactions": None,
+    },
     Market.HK: {
         "get_stock_data": ["yfinance", "akshare"],
         "get_indicators": ["yfinance", "akshare"],

@@ -51,7 +51,7 @@ from .alpha_vantage import (
     get_global_news as get_alpha_vantage_global_news,
 )
 from .alpha_vantage_common import AlphaVantageRateLimitError
-from tradingagents.extensions.market_ext import resolve_extension, route_market_extension
+from tradingagents.extensions.market_ext import Market, resolve_extension, route_market_extension
 
 # Configuration and routing logic
 from .config import get_config
@@ -174,6 +174,11 @@ def _route_market_extension_if_available(method: str, *args, **kwargs):
 
     extension = resolve_extension(str(ticker))
     if extension is None:
+        return None
+
+    detect_market = getattr(extension, "detect_market", None)
+    market = detect_market(str(ticker)) if callable(detect_market) else None
+    if market == Market.INDEX and method in {"get_news", "get_global_news", "get_insider_transactions"}:
         return None
 
     if not extension.supports_method(method):

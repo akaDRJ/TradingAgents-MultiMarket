@@ -1,3 +1,4 @@
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from tradingagents.agents.utils.agent_utils import (
     build_instrument_context,
@@ -8,12 +9,25 @@ from tradingagents.agents.utils.agent_utils import (
     get_income_statement,
     get_language_instruction,
 )
+from tradingagents.extensions.market_ext import build_analyst_report_for_ticker
 
 
 def create_fundamentals_analyst(llm):
     def fundamentals_analyst_node(state):
         current_date = state["trade_date"]
         instrument_context = build_instrument_context(state["company_of_interest"])
+
+        prebuilt_report = build_analyst_report_for_ticker(
+            state["company_of_interest"],
+            "fundamentals",
+            current_date,
+        )
+        if prebuilt_report:
+            report = prebuilt_report
+            return {
+                "messages": [AIMessage(content=report)],
+                "fundamentals_report": report,
+            }
 
         tools = [
             get_fundamentals,

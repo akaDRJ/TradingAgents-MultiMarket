@@ -4,12 +4,63 @@ Requires: pip install akshare
 """
 
 from datetime import datetime
+import multiprocessing as mp
+import queue
+import sys
 from typing import Any, Dict, Optional
 
 import pandas as pd
 
 from .base import BaseProvider
 from ..news.akshare_news import format_stock_news
+
+
+_AKSHARE_CALL_TIMEOUT_SECONDS = 90
+
+
+def _akshare_child(function_name: str, kwargs: dict, output) -> None:
+    try:
+        import akshare as ak
+
+        function = getattr(ak, function_name)
+        output.put(("ok", function(**kwargs)))
+    except BaseException as exc:
+        output.put(("error", repr(exc)))
+
+
+def _is_mocked_akshare_function(function_name: str) -> bool:
+    module = sys.modules.get("akshare")
+    function = getattr(module, function_name, None) if module is not None else None
+    return type(function).__module__ == "unittest.mock"
+
+
+def _call_akshare(function_name: str, **kwargs):
+    if _is_mocked_akshare_function(function_name):
+        import akshare as ak
+
+        return getattr(ak, function_name)(**kwargs)
+
+    context = mp.get_context("fork" if "fork" in mp.get_all_start_methods() else "spawn")
+    output = context.Queue(maxsize=1)
+    process = context.Process(target=_akshare_child, args=(function_name, kwargs, output))
+    process.start()
+    process.join(_AKSHARE_CALL_TIMEOUT_SECONDS)
+
+    if process.is_alive():
+        process.terminate()
+        process.join()
+        raise RuntimeError(f"AKShare {function_name} timed out")
+
+    try:
+        status, payload = output.get_nowait()
+    except queue.Empty:
+        raise RuntimeError(
+            f"AKShare {function_name} crashed with exit code {process.exitcode}"
+        )
+
+    if status == "error":
+        raise RuntimeError(payload)
+    return payload
 
 
 class AKShareProvider(BaseProvider):
@@ -172,8 +223,6 @@ class AKShareProvider(BaseProvider):
                 "No API key required."
             )
 
-        import akshare as ak
-
         code, exchange = self._parse_ticker(ticker)
         prefixed = self._to_prefixed_symbol(code, exchange)
         start_compact = (start_date or "").replace("-", "")
@@ -184,7 +233,8 @@ class AKShareProvider(BaseProvider):
 
         # 1) Eastmoney-backed endpoint
         try:
-            df = ak.stock_zh_a_hist(
+            df = _call_akshare(
+                "stock_zh_a_hist",
                 symbol=code,
                 start_date=start_compact,
                 end_date=end_compact,
@@ -196,7 +246,8 @@ class AKShareProvider(BaseProvider):
 
         # 2) Sina fallback
         try:
-            df = ak.stock_zh_a_daily(
+            df = _call_akshare(
+                "stock_zh_a_daily",
                 symbol=prefixed,
                 start_date=start_compact,
                 end_date=end_compact,
@@ -208,7 +259,8 @@ class AKShareProvider(BaseProvider):
 
         # 3) Tencent fallback
         try:
-            df = ak.stock_zh_a_hist_tx(
+            df = _call_akshare(
+                "stock_zh_a_hist_tx",
                 symbol=prefixed,
                 start_date=start_compact,
                 end_date=end_compact,
@@ -229,11 +281,9 @@ class AKShareProvider(BaseProvider):
         if not self._available:
             self._error(ticker, "AKShare not available: install with 'pip install akshare'.")
 
-        import akshare as ak
-
         code, _exchange = self._parse_ticker(ticker)
         try:
-            df = ak.stock_financial_abstract(symbol=code)
+            df = _call_akshare("stock_financial_abstract", symbol=code)
             return self._format_fundamentals_summary(ticker, df, curr_date)
         except Exception as exc:
             self._error(ticker, f"AKShare fundamentals failed: {exc}")
@@ -248,11 +298,12 @@ class AKShareProvider(BaseProvider):
         if not self._available:
             self._error(ticker, "AKShare not available: install with 'pip install akshare'.")
 
-        import akshare as ak
-
         code, exchange = self._parse_ticker(ticker)
         try:
-            df = ak.stock_balance_sheet_by_report_em(symbol=self._to_em_symbol(code, exchange))
+            df = _call_akshare(
+                "stock_balance_sheet_by_report_em",
+                symbol=self._to_em_symbol(code, exchange),
+            )
             return self._format_statement(ticker, "Balance Sheet", df, freq, curr_date)
         except Exception as exc:
             self._error(ticker, f"AKShare balance sheet failed: {exc}")
@@ -267,11 +318,12 @@ class AKShareProvider(BaseProvider):
         if not self._available:
             self._error(ticker, "AKShare not available: install with 'pip install akshare'.")
 
-        import akshare as ak
-
         code, exchange = self._parse_ticker(ticker)
         try:
-            df = ak.stock_cash_flow_sheet_by_report_em(symbol=self._to_em_symbol(code, exchange))
+            df = _call_akshare(
+                "stock_cash_flow_sheet_by_report_em",
+                symbol=self._to_em_symbol(code, exchange),
+            )
             return self._format_statement(ticker, "Cash Flow", df, freq, curr_date)
         except Exception as exc:
             self._error(ticker, f"AKShare cash flow failed: {exc}")
@@ -286,11 +338,12 @@ class AKShareProvider(BaseProvider):
         if not self._available:
             self._error(ticker, "AKShare not available: install with 'pip install akshare'.")
 
-        import akshare as ak
-
         code, exchange = self._parse_ticker(ticker)
         try:
-            df = ak.stock_profit_sheet_by_report_em(symbol=self._to_em_symbol(code, exchange))
+            df = _call_akshare(
+                "stock_profit_sheet_by_report_em",
+                symbol=self._to_em_symbol(code, exchange),
+            )
             return self._format_statement(ticker, "Income Statement", df, freq, curr_date)
         except Exception as exc:
             self._error(ticker, f"AKShare income statement failed: {exc}")
@@ -305,11 +358,9 @@ class AKShareProvider(BaseProvider):
         if not self._available:
             self._error(ticker, "AKShare not available: install with 'pip install akshare'.")
 
-        import akshare as ak
-
         code, _exchange = self._parse_ticker(ticker)
         try:
-            df = ak.stock_news_em(symbol=code)
+            df = _call_akshare("stock_news_em", symbol=code)
             return format_stock_news(df, ticker, start_date, end_date)
         except Exception as exc:
             self._error(ticker, f"AKShare stock news failed: {exc}")

@@ -100,6 +100,31 @@ class TelegramRuntimeTests(unittest.IsolatedAsyncioTestCase):
             bot.send_message.assert_awaited()
             bot.send_document.assert_awaited()
 
+    async def test_wait_for_completion_sends_failure_details(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            store = TelegramStateStore(Path(tmpdir))
+            bot = AsyncMock()
+            controller = TelegramJobController(
+                store=store, bot=bot, worker_module="tests.fake_worker"
+            )
+            process = _FakeProcess()
+            process.returncode = 1
+            controller._active_process = process
+            store.save_active_job(
+                {
+                    "status": "failed",
+                    "chat_id": 123,
+                    "error": "missing API key",
+                    "error_file": str(Path(tmpdir) / "artifacts" / "last_error.txt"),
+                }
+            )
+
+            await controller.wait_for_completion()
+
+            message = bot.send_message.await_args.kwargs["text"]
+            self.assertIn("missing API key", message)
+            self.assertIn("last_error.txt", message)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+import traceback
 from pathlib import Path
 
 from tradingagents.app.analysis_request import AnalysisRequest
@@ -31,9 +32,14 @@ def main() -> int:
     try:
         result = run_analysis_request(request, event_sink=event_sink)
     except Exception as exc:
+        artifact_dir = state_root / "artifacts"
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        error_file = artifact_dir / "last_error.txt"
+        error_file.write_text(traceback.format_exc())
         current = store.load_active_job() or active_job
         current["status"] = "failed"
         current["error"] = str(exc)
+        current["error_file"] = str(error_file)
         store.save_active_job(current)
         return 1
 

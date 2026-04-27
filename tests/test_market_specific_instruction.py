@@ -20,9 +20,12 @@ class MarketSpecificInstructionTests(unittest.TestCase):
     def test_equity_instruction_is_empty(self):
         self.assertEqual(build_market_specific_instruction("AAPL", "fundamentals"), "")
 
-    def test_crypto_instruction_is_registry_independent(self):
+    def test_crypto_instruction_comes_from_registered_extension(self):
         reset_extensions_for_test()
         self.addCleanup(self._restore_builtin_extensions)
+        self.assertEqual(build_market_specific_instruction("BTCUSDT", "fundamentals"), "")
+
+        crypto.ensure_registered()
         note = build_market_specific_instruction("BTCUSDT", "fundamentals")
         self.assertIn("token", note.lower())
 

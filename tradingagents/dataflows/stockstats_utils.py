@@ -93,16 +93,16 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
     extension = resolve_extension(symbol)
 
     os.makedirs(config["data_cache_dir"], exist_ok=True)
-    data_file = os.path.join(
-        config["data_cache_dir"],
-        f"{symbol}-extension-data-{start_str}-{end_str}.csv",
-    )
-
-    if os.path.exists(data_file):
-        data = pd.read_csv(data_file, on_bad_lines="skip")
-    elif extension is not None:
-        data = _load_extension_ohlcv(symbol, start_str, end_str)
-        data.to_csv(data_file, index=False)
+    if extension is not None:
+        data_file = os.path.join(
+            config["data_cache_dir"],
+            f"{symbol}-extension-data-{start_str}-{end_str}.csv",
+        )
+        if os.path.exists(data_file):
+            data = pd.read_csv(data_file, on_bad_lines="skip", encoding="utf-8")
+        else:
+            data = _load_extension_ohlcv(symbol, start_str, end_str)
+            data.to_csv(data_file, index=False, encoding="utf-8")
     else:
         data_file = os.path.join(
             config["data_cache_dir"],
@@ -110,7 +110,7 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
         )
 
         if os.path.exists(data_file):
-            data = pd.read_csv(data_file, on_bad_lines="skip")
+            data = pd.read_csv(data_file, on_bad_lines="skip", encoding="utf-8")
         else:
             data = yf_retry(
                 lambda: yf.download(
@@ -123,7 +123,7 @@ def load_ohlcv(symbol: str, curr_date: str) -> pd.DataFrame:
                 )
             )
             data = data.reset_index()
-            data.to_csv(data_file, index=False)
+            data.to_csv(data_file, index=False, encoding="utf-8")
 
     data = _clean_dataframe(data)
     data = data[data["Date"] <= curr_date_dt]

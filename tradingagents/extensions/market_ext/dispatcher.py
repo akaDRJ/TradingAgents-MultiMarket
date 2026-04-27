@@ -31,6 +31,31 @@ def detect_market_for_ticker(ticker: str) -> Market:
     return extension.detect_market(raw)
 
 
+def build_instrument_context_for_ticker(ticker: str) -> str | None:
+    extension = resolve_extension(ticker)
+    if extension is None:
+        return None
+    return extension.build_instrument_context(ticker)
+
+
+def build_market_instruction_for_ticker(ticker: str, analyst_kind: str) -> str:
+    extension = resolve_extension(ticker)
+    if extension is None:
+        return ""
+    return extension.build_market_instruction(ticker, analyst_kind)
+
+
+def build_analyst_report_for_ticker(
+    ticker: str,
+    analyst_kind: str,
+    current_date: str,
+) -> str | None:
+    extension = resolve_extension(ticker)
+    if extension is None:
+        return None
+    return extension.build_analyst_report(ticker, analyst_kind, current_date)
+
+
 def route_market_extension(method: str, *args, **kwargs) -> Any | None:
     """Route to a matching extension.
 

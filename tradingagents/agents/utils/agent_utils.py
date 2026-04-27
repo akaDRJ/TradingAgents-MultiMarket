@@ -18,7 +18,10 @@ from tradingagents.agents.utils.news_data_tools import (
     get_insider_transactions,
     get_global_news
 )
-from tradingagents.extensions.crypto.normalize import detect_market as detect_crypto_market
+from tradingagents.extensions.market_ext import (
+    build_instrument_context_for_ticker,
+    build_market_instruction_for_ticker,
+)
 
 
 def get_language_instruction() -> str:
@@ -37,6 +40,10 @@ def get_language_instruction() -> str:
 
 def build_instrument_context(ticker: str) -> str:
     """Describe the exact instrument so agents preserve exchange-qualified tickers."""
+    extension_context = build_instrument_context_for_ticker(ticker)
+    if extension_context:
+        return extension_context
+
     return (
         f"The instrument to analyze is `{ticker}`. "
         "Use this exact ticker in every tool call, report, and recommendation, "
@@ -45,22 +52,7 @@ def build_instrument_context(ticker: str) -> str:
 
 
 def build_market_specific_instruction(ticker: str, analyst_kind: str) -> str:
-    if detect_crypto_market(ticker).name != "CRYPTO":
-        return ""
-
-    if analyst_kind == "fundamentals":
-        return (
-            " For crypto instruments, prioritize token supply, market capitalization, liquidity, "
-            "market structure, and project-level fundamentals. Balance sheet style tools may be unsupported."
-        )
-
-    if analyst_kind == "social":
-        return (
-            " For crypto instruments, social inputs are public-web-derived and low-confidence. "
-            "Use them as weak corroborating evidence, not as a primary signal."
-        )
-
-    return ""
+    return build_market_instruction_for_ticker(ticker, analyst_kind)
 
 
 def create_msg_delete():

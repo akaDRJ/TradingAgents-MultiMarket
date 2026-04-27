@@ -9,6 +9,11 @@ from tradingagents.extensions.ashare.types import Market
 class MarketDetectionTests(unittest.TestCase):
     """Test market detection for various ticker formats."""
 
+    def test_known_index_aliases_are_detected_as_index(self):
+        for ticker in ["上证指数", "沪指", "上证综指", "000001.SS", "000001.SH"]:
+            with self.subTest(ticker=ticker):
+                self.assertEqual(detect_market(ticker), Market.INDEX)
+
     def test_a_share_sse_codes(self):
         """SSE (Shanghai) A-share codes: 600xxx, 601xxx, 603xxx, 605xxx, 688xxx."""
         for code in ["600519", "601166", "603288", "605588", "688041"]:
@@ -80,6 +85,7 @@ class ExchangeDetectionTests(unittest.TestCase):
     def test_already_has_suffix(self):
         """Tickers with existing suffix return that suffix."""
         self.assertEqual(get_exchange_for_a_share("600519.SS"), ".SS")
+        self.assertEqual(get_exchange_for_a_share("600519.SH"), ".SS")
         self.assertEqual(get_exchange_for_a_share("000001.SZ"), ".SZ")
 
     def test_non_a_share_returns_none(self):

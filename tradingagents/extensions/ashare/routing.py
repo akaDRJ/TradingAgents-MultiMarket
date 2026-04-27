@@ -73,7 +73,7 @@ def route_symbol(method: str, raw_ticker: str, *args, **kwargs) -> tuple[str, Ma
 
 def is_ashare_market(market: Market) -> bool:
     """Return True if market is A-share."""
-    return market == Market.A_SHARE
+    return market in {Market.A_SHARE, Market.INDEX}
 
 
 def is_hk_market(market: Market) -> bool:

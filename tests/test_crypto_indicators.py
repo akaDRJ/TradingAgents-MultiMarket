@@ -39,17 +39,22 @@ class CryptoIndicatorWindowTests(unittest.TestCase):
             "source": "coingecko",
         }
 
-        with (
-            patch(
-                "tradingagents.dataflows.stockstats_utils.resolve_extension",
-                return_value=fake_extension,
-            ),
-            patch(
-                "tradingagents.dataflows.stockstats_utils.route_market_extension",
-                return_value=fake_result,
-            ) as mock_route,
-        ):
-            df = load_ohlcv("KASUSDT", "2026-03-10")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with (
+                patch(
+                    "tradingagents.dataflows.stockstats_utils.get_config",
+                    return_value={"data_cache_dir": tmpdir},
+                ),
+                patch(
+                    "tradingagents.dataflows.stockstats_utils.resolve_extension",
+                    return_value=fake_extension,
+                ),
+                patch(
+                    "tradingagents.dataflows.stockstats_utils.route_market_extension",
+                    return_value=fake_result,
+                ) as mock_route,
+            ):
+                df = load_ohlcv("KASUSDT", "2026-03-10")
 
         self.assertIsInstance(df, pd.DataFrame)
         self.assertEqual(

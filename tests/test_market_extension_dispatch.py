@@ -3,11 +3,14 @@
 import unittest
 
 from tradingagents.extensions.market_ext import (
+    ExtensionModule,
     Market,
     detect_market_for_ticker,
     get_extension,
+    load_extension_modules,
     list_extensions,
     register_extension,
+    register_module,
     reset_extensions_for_test,
     resolve_extension,
     route_market_extension,
@@ -131,6 +134,37 @@ class SharedMarketExtensionDispatchTests(unittest.TestCase):
         self.assertIsNotNone(extension)
         self.assertEqual(extension.name, "crypto")
         self.assertIn("crypto", names)
+
+    def test_register_module_uses_priority_order(self):
+        register_module(
+            ExtensionModule(
+                name="later",
+                match_ticker=lambda ticker: ticker == "ABC",
+                detect_market=lambda ticker: Market.US,
+                route_extension=lambda method, *args, **kwargs: "later",
+                priority=20,
+            )
+        )
+        register_module(
+            ExtensionModule(
+                name="earlier",
+                match_ticker=lambda ticker: ticker == "ABC",
+                detect_market=lambda ticker: Market.CRYPTO,
+                route_extension=lambda method, *args, **kwargs: "earlier",
+                priority=10,
+            )
+        )
+
+        self.assertEqual(resolve_extension("ABC").name, "earlier")
+
+    def test_load_extension_modules_reads_module_manifest(self):
+        reset_extensions_for_test()
+        load_extension_modules(["tradingagents.extensions.crypto"])
+
+        extension = get_extension("crypto")
+
+        self.assertIsNotNone(extension)
+        self.assertEqual(extension.detect_market("BTCUSDT"), Market.CRYPTO)
 
 
 if __name__ == "__main__":

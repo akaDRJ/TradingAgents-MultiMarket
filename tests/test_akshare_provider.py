@@ -1,9 +1,10 @@
 """Focused tests for AKShare provider fallback behavior."""
 
+import queue
 import unittest
 from unittest.mock import patch
 
-from tradingagents.extensions.ashare.providers.akshare import AKShareProvider
+from tradingagents.extensions.ashare.providers.akshare import AKShareProvider, _call_akshare
 
 
 class _FakeFrame:
@@ -33,6 +34,34 @@ class AKShareProviderTests(unittest.TestCase):
         self.assertEqual(result["ticker"], "600519.SS")
         self.assertEqual(len(result["data"]), 1)
         tx.assert_not_called()
+
+    def test_akshare_child_crash_becomes_runtime_error(self):
+        class _FakeProcess:
+            exitcode = -11
+
+            def start(self):
+                pass
+
+            def join(self, timeout=None):
+                pass
+
+            def is_alive(self):
+                return False
+
+        class _FakeContext:
+            def Queue(self, maxsize=1):
+                class _FakeQueue:
+                    def get_nowait(self):
+                        raise queue.Empty
+
+                return _FakeQueue()
+
+            def Process(self, target, args):
+                return _FakeProcess()
+
+        with patch("multiprocessing.get_context", return_value=_FakeContext()):
+            with self.assertRaisesRegex(RuntimeError, "crashed with exit code -11"):
+                _call_akshare("stock_news_em", symbol="301526")
 
 
 if __name__ == "__main__":

@@ -6,10 +6,11 @@ from tradingagents.extensions.market_ext.types import Market
 
 
 A_SHARE = Market.A_SHARE
+INDEX = Market.INDEX
 HK = Market.HK
 US = Market.US
 UNKNOWN = Market.UNKNOWN
 
-MarketLiteral = Literal["a_share", "hk", "us", "unknown"]
+MarketLiteral = Literal["a_share", "index", "hk", "us", "unknown"]
 TickerNormalized = str
 TickerRaw = str

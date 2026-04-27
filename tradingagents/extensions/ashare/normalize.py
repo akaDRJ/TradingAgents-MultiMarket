@@ -9,7 +9,7 @@ Provides a unified normalization interface that:
 import re
 from typing import Optional
 
-from .market import detect_market, get_exchange_for_a_share
+from .market import detect_market, get_exchange_for_a_share, normalize_index_ticker
 from .types import Market
 
 
@@ -33,12 +33,19 @@ def normalize_ticker(ticker: str) -> tuple[str, Market]:
         return "", Market.UNKNOWN
 
     raw = ticker.strip()
+    canonical_index = normalize_index_ticker(raw)
+    if canonical_index is not None:
+        return canonical_index, Market.INDEX
+
     market = detect_market(raw)
 
     if market == Market.A_SHARE:
         # Already has suffix
-        if raw.upper().endswith((".SS", ".SZ", ".BJ")):
-            return raw.upper(), market
+        upper = raw.upper()
+        if upper.endswith(".SH"):
+            return upper[:-3] + ".SS", market
+        if upper.endswith((".SS", ".SZ", ".BJ")):
+            return upper, market
         # Try to determine exchange
         suffix = get_exchange_for_a_share(raw)
         if suffix:
@@ -56,13 +63,12 @@ def normalize_ticker(ticker: str) -> tuple[str, Market]:
 
     if market == Market.US:
         # Uppercase, strip any accidental suffixes not expected
-        # But preserve .OB for OTC
+        # Preserve explicit exchange-qualified inputs like CNC.TO.
         upper = raw.upper()
         if upper.endswith(".OB"):
             return upper, market
-        # Remove any accidental exchange suffix
-        if "." in upper and not upper.endswith(".OB"):
-            upper = upper.split(".")[0]
+        if "." in upper:
+            return upper, market
         return upper, market
 
     return raw, market

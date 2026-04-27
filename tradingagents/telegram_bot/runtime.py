@@ -76,8 +76,17 @@ class TelegramJobController:
             active_job["status"] = "failed"
             self.store.save_active_job(active_job)
             if active_job.get("chat_id"):
+                error_text = active_job.get("error")
+                error_file = active_job.get("error_file")
+                message = "Analysis failed."
+                if error_text:
+                    message = f"{message} Error: {error_text}"
+                if error_file:
+                    message = f"{message}\nDetails: {error_file}"
+                else:
+                    message = f"{message} Check local artifacts for details."
                 await self.bot.send_message(
                     chat_id=active_job["chat_id"],
-                    text="Analysis failed. Check local artifacts for details.",
+                    text=message,
                 )
         self._active_process = None
